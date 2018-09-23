@@ -48,9 +48,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     body: new TabBarView(
         controller: _tabController,
         children: [
-          new ListView.builder(itemBuilder: (BuildContext context, int index) {
-            return Text('Random number ${rand.nextInt(100)}',);
-          }),
+          new ListView.builder(itemBuilder: ListData().build),
           Text('Second tab'),
         ],),
       bottomNavigationBar: new TabBar(
@@ -59,5 +57,26 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         labelColor: Colors.blue,
       ),
     );
+  }
+}
+
+class ListData {
+  static ListData _instance = ListData._internal();
+
+  ListData._internal();
+
+  factory ListData() {
+    return _instance;
+  }
+
+  Random _rand = Random();
+  Map<int, int> _values = new Map();
+
+  Widget build (BuildContext context, int index) {
+    if (!_values.containsKey(index)) {
+      _values[index] = _rand.nextInt(100);
+    }
+
+    return Text('Random number ${_values[index]}',);
   }
 }
