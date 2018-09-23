@@ -24,8 +24,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
 
-  Random rand = Random();
-
   TabController _tabController;
 
   final List<Tab> myTabs = <Tab>[
