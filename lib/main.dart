@@ -1,6 +1,8 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+
+typedef double GetOffsetMethod();
+typedef void SetOffsetMethod(double offset);
 
 void main() => runApp(new MyApp());
 
@@ -24,7 +26,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
 
-  Random rand = Random();
+  double listViewOffset=0.0;
 
   TabController _tabController;
 
@@ -47,8 +49,10 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     ),
     body: new TabBarView(
         controller: _tabController,
-        children: [
-          new ListView.builder(itemBuilder: ListData().build),
+        children: [new ListTab(
+          getOffsetMethod: () => listViewOffset,
+          setOffsetMethod: (offset) => this.listViewOffset = offset,
+        ),
           Text('Second tab'),
         ],),
       bottomNavigationBar: new TabBar(
@@ -59,6 +63,48 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     );
   }
 }
+
+class ListTab extends StatefulWidget {
+
+  ListTab({Key key, this.getOffsetMethod, this.setOffsetMethod}) : super(key: key);
+
+  final GetOffsetMethod getOffsetMethod;
+  final SetOffsetMethod setOffsetMethod;
+
+  @override
+  _ListTabState createState() => _ListTabState();
+}
+
+class _ListTabState extends State<ListTab> {
+
+  ScrollController scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    //Init scrolling to preserve it
+    scrollController = new ScrollController(
+        initialScrollOffset: widget.getOffsetMethod()
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return
+      NotificationListener(
+        child: new ListView.builder(
+          controller: scrollController,
+          itemBuilder: ListData().build,
+        ),
+        onNotification: (notification) {
+          if (notification is ScrollNotification) {
+            widget.setOffsetMethod(notification.metrics.pixels);
+          }
+        },
+      );
+  }
+}
+
 
 class ListData {
   static ListData _instance = ListData._internal();
