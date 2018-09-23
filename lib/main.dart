@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 typedef double GetOffsetMethod();
 typedef void SetOffsetMethod(double offset);
@@ -39,6 +40,28 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = new TabController(vsync: this, length: myTabs.length);
+
+    _restoreState().then(setScroll);
+  }
+
+  @override
+  void dispose() {
+    _saveState();
+    super.dispose();
+  }
+
+  Future<double> _restoreState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble('listViewOffset');
+  }
+
+  void _saveState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('listViewOffset', listViewOffset);
+  }
+
+  void setScroll(double value) {
+    this.setState(() => listViewOffset = value);
   }
 
   @override
