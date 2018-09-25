@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 typedef double GetOffsetMethod();
 typedef void SetOffsetMethod(double offset);
@@ -31,6 +33,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
 
   TabController _tabController;
 
+  StreamSubscription _stream;
+  StreamController<double> _controller = new StreamController<double>.broadcast();
+
   final List<Tab> myTabs = <Tab>[
     new Tab(text: 'FIRST'),
     new Tab(text: 'SECOND'),
@@ -41,42 +46,32 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     super.initState();
     _tabController = new TabController(vsync: this, length: myTabs.length);
 
-    _restoreState().then(setScroll);
+    _stream = _controller.stream.transform(debounce(new Duration(milliseconds: 500))).listen(_saveState);
   }
 
-  @override
-  void dispose() {
-    _saveState();
-    super.dispose();
-  }
-
-  Future<double> _restoreState() async {
+  void _saveState(double value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble('listViewOffset');
+    await prefs.setDouble('listViewOffset', value);
   }
 
-  void _saveState() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('listViewOffset', listViewOffset);
-  }
-
-  void setScroll(double value) {
-    this.setState(() => listViewOffset = value);
+  void _setOffset(double offset) {
+    this.listViewOffset = offset;
+    _controller.add(offset);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
+      appBar: AppBar(
         title: Text('Sample app'),
-    ),
-    body: new TabBarView(
+      ),
+      body: new TabBarView(
         controller: _tabController,
         children: [new ListTab(
           getOffsetMethod: () => listViewOffset,
-          setOffsetMethod: (offset) => this.listViewOffset = offset,
+          setOffsetMethod: _setOffset,
         ),
-          Text('Second tab'),
+        Text('Second tab'),
         ],),
       bottomNavigationBar: new TabBar(
         controller: _tabController,
@@ -84,6 +79,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         labelColor: Colors.blue,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _stream.cancel();
+    super.dispose();
   }
 }
 
@@ -109,6 +110,19 @@ class _ListTabState extends State<ListTab> {
     scrollController = new ScrollController(
         initialScrollOffset: widget.getOffsetMethod()
     );
+
+    _restoreState().then((double value) => scrollController.jumpTo(value));
+  }
+
+  Future<double> _restoreState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble('listViewOffset');
+  }
+
+  void setScroll(double value) {
+    setState(() {
+      scrollController.jumpTo(value);
+    });
   }
 
   @override
